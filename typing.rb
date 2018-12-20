@@ -8,6 +8,7 @@ logger = Logger.new($stdout)
 logger.level = Logger::DEBUG
 
 threads = []
+exclusions = ENV['EXCLUDE_CHANNELS']
 
 ENV['SLACK_API_TOKENS'].split.each do |token|
   logger.info "Starting #{token[0..12]} ..."
@@ -19,9 +20,12 @@ ENV['SLACK_API_TOKENS'].split.each do |token|
   end
 
   client.on(:user_typing) do |data|
-    logger.info data
-    client.typing channel: data.channel
-    #client.message channel: data.channel, text: "What are you typing <@#{data.user}>?"
+    if exclusions.include?(client.channels[data.channel]['name'])
+      logger.info "Skipping #{client.channels[data.channel]['name']}"
+    else
+      client.typing channel: data.channel
+      logger.info "#{client.users[data.user]['name']} typing in #{client.channels[data.channel]['name']}"
+    end
   end
 
   threads << client.start_async
